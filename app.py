@@ -204,10 +204,10 @@ def health():
 
 
 if __name__ == '__main__':
-    print("🚀 Запуск Flask-сервера для LM Studio...")
-    print(f"📡 LM Studio: {LM_STUDIO_URL}")
-    print("🌐 Доступно по:")
-    print("   • Локально: http://localhost:5000")
+    print("Запуск Flask-сервера для LM Studio...")
+    print(f"LM Studio: {LM_STUDIO_URL}")
+    print("Доступно по:")
+    print("     Локально: http://localhost:5000")
     
     import socket
     try:
@@ -215,11 +215,11 @@ if __name__ == '__main__':
         s.connect(("8.8.8.8", 80))
         local_ip = s.getsockname()[0]
         s.close()
-        print(f"   • С телефона: http://{local_ip}:5000")
+        print(f"    С телефона: http://{local_ip}:5000")
     except:
-        print("   • С телефона: http://<ВАШ_IP>:5000")
+        print(" С телефона: http://<ВАШ_IP>:5000")
     
-    print("\n💡 Убедитесь, что LM Studio запущен и модель загружена!")
-    print("🧠 Reasoning-модели (Qwen 3.5) будут показывать ход мыслей в реальном времени")
+    print("\nУбедитесь, что LM Studio запущен и модель загружена!")
+    print("Reasoning-модели (Qwen 3.5) будут показывать ход мыслей в реальном времени")
     
     app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
