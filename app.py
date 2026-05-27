@@ -11,14 +11,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['JSON_ENSURE_ASCII'] = False
 
-# 🔧 Адрес LM Studio (OpenAI-compatible API)
+# 🔧 LM Studio URL (OpenAI-compatible API)
 LM_STUDIO_URL = os.getenv('LM_STUDIO_URL', 'http://localhost:1234/v1/chat/completions')
 
 SYSTEM_PROMPT = """"""
 
 
 def get_loaded_models():
-    """Получает список моделей из LM Studio"""
+    """Gets list of models from LM Studio"""
     try:
         models_url = LM_STUDIO_URL.replace('/chat/completions', '/models')
         resp = requests.get(models_url, timeout=5)
@@ -26,7 +26,7 @@ def get_loaded_models():
             data = resp.json()
             models = []
             for m in data.get("data", []):
-                # Пропускаем эмбеддинг-модели
+                # Skip embedding models
                 if "embedding" not in m.get("id", "").lower():
                     models.append({"id": m["id"], "name": m["id"]})
             return models if models else [{"id": "local-model", "name": "Local Model"}]
@@ -49,15 +49,13 @@ def api_models():
 def build_headers():
     return {
         "Content-Type": "application/json",
-        "Authorization": "Bearer lm-studio",  # LM Studio принимает любой токен
+        "Authorization": "Bearer lm-studio",  # LM Studio accepts any token
     }
 
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    raw = request.get_data()
-    data = json.loads(raw.decode('utf-8'))
-    """Обычный чат — возвращает полный ответ (без стриминга)"""
+    """Regular chat — returns full response (without streaming)"""
     try:
         raw = request.get_data()
         data = json.loads(raw.decode('utf-8'))
@@ -99,7 +97,7 @@ def chat():
     except requests.exceptions.ConnectionError:
         return jsonify({
             'success': False,
-            'error': "Не удалось подключиться к LM Studio. Убедитесь, что сервер запущен на порту 1234."
+            'error': "Failed to connect to LM Studio. Make sure the server is running on port 1234."
         }), 503
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -107,7 +105,7 @@ def chat():
 
 @app.route('/api/chat/stream', methods=['POST'])
 def chat_stream():
-    """Стриминговый чат — передаёт content и reasoning_content в реальном времени"""
+    """Streaming chat — streams content and reasoning_content in real-time"""
     raw = request.get_data()
     print("RAW REQUEST:", raw)
     data = json.loads(raw.decode('utf-8'))
@@ -122,7 +120,7 @@ def chat_stream():
         "messages": full_messages,
         "stream": True,
         "temperature": 0.7,
-        "max_tokens": 2048  # Важно для reasoning-моделей
+        "max_tokens": 2048  # Important for reasoning models
     }
 
     def generate():
@@ -135,7 +133,7 @@ def chat_stream():
                 headers=build_headers(),
                 data=json.dumps(payload, ensure_ascii=False).encode('utf-8'),
                 stream=True,
-                timeout=180  # Увеличен для долгих "размышлений"
+                timeout=180  # Increased for long "reasoning" phases
             )
 
             for line in response.iter_lines():
@@ -151,11 +149,11 @@ def chat_stream():
                         if chunk.get('choices'):
                             delta = chunk['choices'][0].get('delta', {})
                             
-                            # 🔧 Отправляем финальный ответ (content)
+                            # 🔧 Send final response (content)
                             if delta.get('content'):
                                 yield f"data: {json.dumps({'type': 'content', 'data': delta['content']}, ensure_ascii=False)}\n\n"
                             
-                            # 🔧 Отправляем "мысли" модели (reasoning_content)
+                            # 🔧 Send model's "thoughts" (reasoning_content)
                             if delta.get('reasoning_content'):
                                 yield f"data: {json.dumps({'type': 'reasoning', 'data': delta['reasoning_content']}, ensure_ascii=False)}\n\n"
                                 
@@ -169,7 +167,7 @@ def chat_stream():
                 response.close()
             raise
         except requests.exceptions.ConnectionError:
-            yield f"data: {json.dumps({'type': 'error', 'data': 'Нет соединения с LM Studio'})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'data': 'No connection to LM Studio'})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
 
@@ -186,7 +184,7 @@ def chat_stream():
 
 @app.route('/api/health')
 def health():
-    """Проверка состояния соединения с LM Studio"""
+    """Check connection status with LM Studio"""
     try:
         models_url = LM_STUDIO_URL.replace('/chat/completions', '/models')
         resp = requests.get(models_url, timeout=3)
@@ -204,10 +202,10 @@ def health():
 
 
 if __name__ == '__main__':
-    print("Запуск Flask-сервера для LM Studio...")
+    print("Starting Flask server for LM Studio...")
     print(f"LM Studio: {LM_STUDIO_URL}")
-    print("Доступно по:")
-    print("     Локально: http://localhost:5000")
+    print("Available at:")
+    print("     Local: http://localhost:5000")
     
     import socket
     try:
@@ -215,11 +213,11 @@ if __name__ == '__main__':
         s.connect(("8.8.8.8", 80))
         local_ip = s.getsockname()[0]
         s.close()
-        print(f"    С телефона: http://{local_ip}:5000")
+        print(f"    From phone: http://{local_ip}:5000")
     except:
-        print(" С телефона: http://<ВАШ_IP>:5000")
+        print(" From phone: http://<YOUR_IP>:5000")
     
-    print("\nУбедитесь, что LM Studio запущен и модель загружена!")
-    print("Reasoning-модели (Qwen 3.5) будут показывать ход мыслей в реальном времени")
+    print("\nMake sure LM Studio is running and a model is loaded!")
+    print("Reasoning models (Qwen 3.5) will show the thought process in real-time")
     
     app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
