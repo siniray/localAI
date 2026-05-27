@@ -49,7 +49,7 @@ def api_models():
 def build_headers():
     return {
         "Content-Type": "application/json",
-        "Authorization": "Bearer lm-studio",  # LM Studio accepts any token
+        "Authorization": "Bearer lm-studio",
     }
 
 
